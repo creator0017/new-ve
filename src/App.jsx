@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Splash from './pages/bank/Splash'
 import Home from './pages/bank/Home'
 import Register from './pages/bank/Register'
+import OTPVerification from './pages/bank/OTPVerification'
 import Login from './pages/bank/Login'
 import Dashboard from './pages/bank/Dashboard'
 import Transfer from './pages/bank/Transfer'
@@ -13,6 +14,7 @@ function App() {
       <Route path="/" element={<Splash />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/otp-verify" element={<OTPVerification />} />
       <Route path="/home" element={<Home />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/transfer" element={<Transfer />} />

@@ -1,4 +1,93 @@
+import { useState, useEffect, useRef } from 'react'
+
+const API = 'http://localhost:5000/api'
+
 function BugShieldTerminal() {
+  const [status, setStatus] = useState('READY')
+  const [crashInput, setCrashInput] = useState('')
+  const [brokenCode, setBrokenCode] = useState('')
+  const [fixedCode, setFixedCode] = useState('')
+  const [logs, setLogs] = useState([
+    { id: 468, payload: "'admin'", status: '200', ok: true },
+    { id: 469, payload: "'system'", status: '200', ok: true },
+    { id: 470, payload: "'root'", status: '200', ok: true },
+  ])
+  const [isAttacking, setIsAttacking] = useState(false)
+  const logRef = useRef(null)
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/status`)
+        const data = await res.json()
+        if (data.status !== status) {
+          setStatus(data.status)
+          setCrashInput(data.latest_crash_input)
+          setBrokenCode(data.broken_code)
+          setFixedCode(data.fixed_code)
+
+          if (data.status === 'CRASHED') {
+            setLogs(prev => [...prev, { id: prev.length + 1, payload: crashInput, status: '500 CRASH', ok: false }])
+          }
+          if (data.status === 'FIXED') {
+            setLogs(prev => [...prev, { id: prev.length + 1, payload: '[AI PATCH DEPLOYED]', status: 'FIXED', ok: true }])
+          }
+        }
+      } catch (e) {
+        // backend not running
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [status, crashInput])
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight
+    }
+  }, [logs])
+
+  const handleAttack = async () => {
+    setIsAttacking(true)
+    setLogs(prev => [...prev, { id: prev.length + 1, payload: '[ FUZZER STARTED ]', status: 'SCAN', ok: true }])
+    try {
+      await fetch(`${API}/fuzz-start`, { method: 'POST' })
+      const payloads = ['user1', 'user2', "' OR 1=1 --"]
+      for (const p of payloads) {
+        setLogs(prev => [...prev, { id: prev.length + 1, payload: `'${p}'`, status: '...', ok: true }])
+        try {
+          const res = await fetch(`${API}/transfer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account: p }),
+          })
+          if (res.status === 500) {
+            setLogs(prev => [...prev, { id: prev.length + 1, payload: `'${p}'`, status: '500 CRASH', ok: false }])
+            break
+          } else {
+            const lastLog = logs[logs.length - 1]
+            setLogs(prev => [...prev.slice(0, -1), { ...prev[prev.length - 1], status: '200', ok: true }])
+          }
+        } catch (e) {
+          console.error(e)
+        }
+        await new Promise(r => setTimeout(r, 1500))
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    setIsAttacking(false)
+  }
+
+  const handleDeployPatch = async () => {
+    try {
+      await fetch(`${API}/patch`, { method: 'POST' })
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const statusColor = status === 'CRASHED' ? '#ffb4ab' : status === 'FIXED' ? '#00ff41' : status === 'ATTACKING' ? '#f1c100' : '#00ff41'
+
   return (
     <div className="min-h-screen flex flex-col antialiased" style={{ backgroundColor: '#050505', color: '#00ff41', fontFamily: "'Courier New', monospace" }}>
       <header className="bg-[#050505] fixed top-0 w-full z-50 flex justify-between items-center px-4 h-12 border-b border-[#00ff41]/30 font-code-sm text-code-sm text-[#00ff41] uppercase tracking-tighter">
@@ -12,6 +101,9 @@ function BugShieldTerminal() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <span className="text-sm font-bold px-2 py-1 border rounded" style={{ color: statusColor, borderColor: statusColor }}>
+            [{status}]
+          </span>
           <button className="hidden md:block px-3 py-1 border border-[#00ff41]/30 hover:bg-[#00ff41] hover:text-[#050505] transition-colors duration-75 cursor-pointer">REBOOT</button>
           <button className="px-3 py-1 border border-[#00ff41] bg-[#00ff41]/10 text-[#00ff41] hover:bg-[#00ff41] hover:text-[#050505] transition-colors duration-75 font-bold cursor-pointer">TERMINATE</button>
           <div className="flex gap-2">
@@ -76,41 +168,32 @@ function BugShieldTerminal() {
                   <span style={{ textShadow: '0 0 5px rgba(0, 255, 65, 0.5)' }}>http://localhost:5000/api/transfer</span>
                   <span className="font-bold blinking" style={{ animation: 'blink 1s step-end infinite' }}>&#9608;</span>
                 </div>
-                <button className="w-full py-4 border border-[#00ff41] text-[#00ff41] font-headline-lg text-headline-lg hover:bg-[#00ff41] hover:text-[#050505] transition-colors duration-150 uppercase tracking-widest font-black cursor-pointer">
-                  [ INITIATE ATTACK ]
+                <button
+                  onClick={handleAttack}
+                  disabled={isAttacking}
+                  className="w-full py-4 border border-[#00ff41] text-[#00ff41] font-headline-lg text-headline-lg hover:bg-[#00ff41] hover:text-[#050505] transition-colors duration-150 uppercase tracking-widest font-black cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAttacking ? '[ ATTACKING... ]' : '[ INITIATE ATTACK ]'}
                 </button>
                 <div className="border border-[#00ff41]/30 flex-1 bg-[#050505] p-2 overflow-hidden flex flex-col font-code-sm text-code-sm relative">
                   <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-[#050505] to-transparent z-10"></div>
                   <div className="flex justify-between items-center border-b border-[#00ff41]/30 pb-1 mb-2 text-[#00ff41]/50 uppercase">
                     <span>&gt; SYSTEM_LOGS / FUZZER_OUTPUT</span>
-                    <span>LINES: 472</span>
+                    <span>LINES: {logs.length}</span>
                   </div>
-                  <div className="overflow-y-auto flex-1 flex flex-col justify-end space-y-1">
+                  <div ref={logRef} className="overflow-y-auto flex-1 flex flex-col justify-end space-y-1">
                     <div className="text-[#00ff41]/60">...</div>
-                    <div className="flex gap-2">
-                      <span>[OK]</span>
-                      <span className="text-[#00ff41]/50">#0468</span>
-                      <span>-&gt; 'admin' -&gt;</span>
-                      <span className="text-[#00ff41]">200</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span>[OK]</span>
-                      <span className="text-[#00ff41]/50">#0469</span>
-                      <span>-&gt; 'system' -&gt;</span>
-                      <span className="text-[#00ff41]">200</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span>[OK]</span>
-                      <span className="text-[#00ff41]/50">#0470</span>
-                      <span>-&gt; 'root' -&gt;</span>
-                      <span className="text-[#00ff41]">200</span>
-                    </div>
-                    <div className="flex gap-2 text-[#ffb4ab] border border-[#ffb4ab]/30 bg-[#ffb4ab]/10 p-1">
-                      <span className="font-bold blinking" style={{ animation: 'blink 1s step-end infinite' }}>[FAIL]</span>
-                      <span>#0471</span>
-                      <span>-&gt; '' OR 1=1 --' -&gt;</span>
-                      <span className="font-bold">500 CRASH</span>
-                    </div>
+                    {logs.map((log) => (
+                      <div
+                        key={log.id}
+                        className={`flex gap-2 ${!log.ok ? 'text-[#ffb4ab] border border-[#ffb4ab]/30 bg-[#ffb4ab]/10 p-1' : ''}`}
+                      >
+                        <span className={!log.ok ? 'font-bold blinking' : ''}>{log.ok ? '[OK]' : '[FAIL]'}</span>
+                        <span className="text-[#00ff41]/50">#{String(log.id).padStart(4, '0')}</span>
+                        <span>-&gt; {log.payload} -&gt;</span>
+                        <span className={log.ok ? 'text-[#00ff41]' : 'font-bold'}>{log.status}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -122,9 +205,19 @@ function BugShieldTerminal() {
                 <span className="font-headline-md text-headline-md text-[#f1c100] uppercase">&gt; AI_DIAGNOSIS_MODULE</span>
               </header>
               <div className="p-3 flex-1 flex flex-col gap-4">
-                <div className="text-[#f1c100] font-body-lg text-body-lg uppercase tracking-wide border-l-2 border-[#f1c100] pl-2">
-                  ROOT CAUSE: SQL Injection in /api/transfer...
-                </div>
+                {status === 'CRASHED' ? (
+                  <div className="text-[#ffb4ab] font-body-lg text-body-lg uppercase tracking-wide border-l-2 border-[#ffb4ab] pl-2">
+                    CRASH DETECTED: SQL Injection via {crashInput}
+                  </div>
+                ) : status === 'FIXED' ? (
+                  <div className="text-[#00ff41] font-body-lg text-body-lg uppercase tracking-wide border-l-2 border-[#00ff41] pl-2">
+                    SYSTEM PATCHED: Vulnerability resolved by AI agent
+                  </div>
+                ) : (
+                  <div className="text-[#f1c100] font-body-lg text-body-lg uppercase tracking-wide border-l-2 border-[#f1c100] pl-2">
+                    AWAITING INPUT: Target {status.toLowerCase()}...
+                  </div>
+                )}
                 <div className="flex-1 grid grid-cols-2 gap-1">
                   <div className="border border-[#ffb4ab]/50 bg-[#0a0000] p-2 flex flex-col relative overflow-hidden">
                     <div className="absolute top-0 right-0 bg-[#ffb4ab] text-[#690005] text-xs px-1 font-bold">VULNERABLE</div>
@@ -142,30 +235,55 @@ function BugShieldTerminal() {
             <div className="border border-[#00ff41]/30 bg-[#0e0e0e] h-1/2 flex flex-col relative overflow-hidden">
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,255,65,0.03)_1px,transparent_1px)] bg-[length:100%_4px] z-10"></div>
               <div className="p-3 flex-1 flex flex-col items-center justify-center gap-6 relative z-20">
-                <div className="font-code-sm text-[10px] text-[#00ff41] whitespace-pre text-center leading-none opacity-80 hidden sm:block" style={{ textShadow: '0 0 5px rgba(0, 255, 65, 0.5)' }}>
-                  {` ____  _  _  ____    ____  ____  __    __    ____  ____ 
+                {status === 'FIXED' ? (
+                  <>
+                    <div className="font-code-sm text-[10px] text-[#00ff41] whitespace-pre text-center leading-none opacity-80 hidden sm:block" style={{ textShadow: '0 0 5px rgba(0, 255, 65, 0.5)' }}>
+                      {` ____  _  _  ____    ____  ____  __    __    ____  ____ 
 (  _ \\)( )( / ___)  / ___)(  __)/ _\\  (  )  (  __)(  _ \\
  ) _ (  ) \\/ (\\___ \\  \\___ \\ ) _)/    \\ / (_/\\ ) _)  ) __/
 (____/ \\____/(____/  (____/(____)\\_/\\_/\\____/(____)(__)  `}
-                </div>
-                <h2 className="font-headline-lg text-headline-lg text-[#00ff41] sm:hidden">BUG SEALED</h2>
-                <div className="text-center font-body-md text-body-md border border-[#00ff41]/30 px-4 py-2 bg-[#00ff41]/5">
-                  [ BUG SEALED &#10003; ] Vulnerability #0471 Successfully Patched &amp; Verified
-                </div>
-                <div className="flex gap-8 border-y border-[#00ff41]/30 py-2 w-full justify-center">
-                  <div className="text-center">
-                    <div className="text-xs text-[#00ff41]/60 mb-1">TIME TO FIX</div>
-                    <div className="text-[#00ff41] font-bold text-lg">2.3 SECONDS</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-[#ffb4ab]/60 mb-1">HUMAN TIME</div>
-                    <div className="text-[#ffb4ab] font-bold text-lg">~2 DAYS</div>
-                  </div>
-                </div>
-                <button className="px-6 py-3 border border-[#00ff41] text-[#00ff41] hover:bg-[#00ff41] hover:text-[#050505] transition-colors duration-150 font-bold tracking-widest relative overflow-hidden group cursor-pointer">
-                  <span className="relative z-10">[ DEPLOY AI PATCH TO PRODUCTION ]</span>
-                  <div className="absolute inset-0 bg-[#00ff41]/20 group-hover:bg-transparent blinking" style={{ animation: 'blink 1s step-end infinite' }}></div>
-                </button>
+                    </div>
+                    <h2 className="font-headline-lg text-headline-lg text-[#00ff41] sm:hidden">BUG SEALED</h2>
+                    <div className="text-center font-body-md text-body-md border border-[#00ff41]/30 px-4 py-2 bg-[#00ff41]/5">
+                      [ BUG SEALED &#10003; ] Vulnerability Successfully Patched &amp; Verified
+                    </div>
+                    <div className="flex gap-8 border-y border-[#00ff41]/30 py-2 w-full justify-center">
+                      <div className="text-center">
+                        <div className="text-xs text-[#00ff41]/60 mb-1">TIME TO FIX</div>
+                        <div className="text-[#00ff41] font-bold text-lg">2.3 SECONDS</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-[#ffb4ab]/60 mb-1">HUMAN TIME</div>
+                        <div className="text-[#ffb4ab] font-bold text-lg">~2 DAYS</div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-center font-body-md text-body-md border border-[#00ff41]/30 px-4 py-2 bg-[#00ff41]/5">
+                      STATUS: <span style={{ color: statusColor }}>{status}</span>
+                    </div>
+                    <div className="flex gap-8 border-y border-[#00ff41]/30 py-2 w-full justify-center">
+                      <div className="text-center">
+                        <div className="text-xs text-[#00ff41]/60 mb-1">TARGET</div>
+                        <div className="text-[#00ff41] font-bold text-sm">localhost:5000</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-[#f1c100]/60 mb-1">TESTS RUN</div>
+                        <div className="text-[#f1c100] font-bold text-lg">{logs.length}</div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {status === 'CRASHED' && (
+                  <button
+                    onClick={handleDeployPatch}
+                    className="px-6 py-3 border border-[#00ff41] text-[#00ff41] hover:bg-[#00ff41] hover:text-[#050505] transition-colors duration-150 font-bold tracking-widest relative overflow-hidden group cursor-pointer"
+                  >
+                    <span className="relative z-10">[ DEPLOY AI PATCH TO PRODUCTION ]</span>
+                    <div className="absolute inset-0 bg-[#00ff41]/20 group-hover:bg-transparent blinking" style={{ animation: 'blink 1s step-end infinite' }}></div>
+                  </button>
+                )}
               </div>
             </div>
           </section>

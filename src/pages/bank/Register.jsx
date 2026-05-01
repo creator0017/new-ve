@@ -5,7 +5,7 @@ function Register() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    navigate('/login')
+    navigate('/otp-verify')
   }
 
   return (
