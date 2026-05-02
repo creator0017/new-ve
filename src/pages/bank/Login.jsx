@@ -1,76 +1,72 @@
 import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 
 function Login() {
   const navigate = useNavigate()
+  const [accountNumber, setAccountNumber] = useState("")
+  const [systemStatus, setSystemStatus] = useState("READY")
 
-  const handleLogin = () => {
-    navigate('/home')
-  }
+  const handleLogin = () => { navigate('/home') }
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/status')
+        const data = await res.json()
+        setSystemStatus(data.status)
+        if (data.status === "ATTACKING" || data.status === "CRASHED") {
+          setAccountNumber(data.current_payload)
+        }
+      } catch (e) {}
+    }, 500)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
-    <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center relative overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-40"
-          style={{
-            backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCAQOkv32y1R-fKg9NI_KtwVcubaQKiwQcd04w9i7zB45IF54SCld_OVVzRoCTq2jUepAb1-DXNPFQY1GPGvvIEBhm6s0UHaZNP4jU1K741zrz38KvyX9PkoIlPxL-T8mRU2Bbt7JzbCUe83LzaHXH1Bc1TkiZyn2JltrP7N0W45bkJwr7c6u__OrlWMwHYipJCABut6KShaHvBlTbAtRQSqEF6cni88L2RhkVMaqSxYA0tAVI3NrfpD6psjNQVFdDJodYBCEW7qiI')",
-          }}
-        ></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-bright/80 to-surface-container-low/90 mix-blend-overlay"></div>
-      </div>
-      <main className="relative z-10 w-full max-w-[440px] px-container_margin">
-        <div className="bg-surface-container-lowest/70 backdrop-blur-[12px] border border-outline-variant/30 rounded-xl p-lg shadow-[0_8px_32px_rgba(0,0,0,0.04)] flex flex-col gap-md">
-          <div className="flex flex-col items-center text-center gap-sm">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-surface-container-lowest shadow-sm mb-2 border border-outline-variant/20">
-              <span className="text-display-xl font-display-xl text-primary leading-none mt-1">&#9906;</span>
+    <div className={`min-h-screen flex items-center justify-center p-6 ${systemStatus === "CRASHED" ? "bg-red-50" : "bg-gradient-to-br from-gray-100 to-gray-200"}`}>
+      <main className="w-full max-w-md md:max-w-xl lg:max-w-2xl">
+        <div className={`rounded-2xl shadow-xl p-8 md:p-12 flex flex-col gap-8 ${systemStatus === "CRASHED" ? "bg-red-100 border-4 border-red-500" : "bg-white"}`}>
+          {systemStatus === "CRASHED" && (
+            <div className="bg-red-500 text-white text-center font-bold py-3 px-4 rounded-xl text-xl">
+              SYSTEM BREACHED - DATABASE CRITICAL FAILURE
             </div>
-            <div className="flex items-center gap-xs">
-              <h1 className="text-headline-md font-headline-md text-on-surface tracking-tight">ACCOUNT LOGIN</h1>
-              <span className="inline-flex items-center px-2 py-1 rounded bg-secondary-container/30 text-on-secondary-container text-label-caps font-label-caps ml-2 border border-secondary-container/50">SECURE</span>
+          )}
+          <div className={`flex flex-col items-center text-center gap-4 ${systemStatus === "CRASHED" ? "opacity-50" : ""}`}>
+            <div className={`flex items-center justify-center w-20 h-20 rounded-full ${systemStatus === "CRASHED" ? "bg-red-200" : "bg-amber-100"}`}>
+              <span className={`material-symbols-outlined text-5xl ${systemStatus === "CRASHED" ? "text-red-600" : "text-amber-600"}`} style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>
             </div>
-            <p className="text-body-sm font-body-sm text-on-surface-variant">Please enter your credentials to access your dashboard.</p>
+            <h1 className="text-3xl font-bold text-gray-900">ACCOUNT LOGIN</h1>
+            <p className="text-lg text-gray-500">Enter your credentials to access your dashboard.</p>
           </div>
-          <form className="flex flex-col gap-sm mt-xs" onSubmit={(e) => e.preventDefault()}>
-            <div className="flex flex-col gap-xs">
-              <div className="flex items-center justify-between">
-                <label className="text-label-caps font-label-caps text-on-surface-variant ml-1" htmlFor="account-number">ACCOUNT NUMBER</label>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-error text-on-error text-[10px] font-bold tracking-wider shadow-sm">BUG</span>
-              </div>
+          <form className="flex flex-col gap-6" onSubmit={(e) => e.preventDefault()}>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-600 uppercase" htmlFor="account-number">ACCOUNT NUMBER</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">account_circle</span>
-                <input className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-3 pl-10 pr-3 text-body-lg font-body-lg text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-outline/70" id="account-number" placeholder="Enter your account number" type="text" />
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-2xl">account_circle</span>
+                <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className={`w-full bg-white border-2 rounded-xl py-4 pl-14 pr-4 text-lg text-gray-900 focus:outline-none focus:ring-2 ${systemStatus === "CRASHED" ? "border-red-500 focus:border-red-500 focus:ring-red-100" : "border-gray-200 focus:border-amber-400 focus:ring-amber-100"}`} id="account-number" placeholder="Enter your account number" type="text" />
               </div>
             </div>
-            <div className="flex flex-col gap-xs mt-2">
-              <div className="flex items-center justify-between">
-                <label className="text-label-caps font-label-caps text-on-surface-variant ml-1" htmlFor="password">PASSWORD</label>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-error text-on-error text-[10px] font-bold tracking-wider shadow-sm">BUG</span>
-              </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-600 uppercase" htmlFor="password">PASSWORD</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">lock</span>
-                <input className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-3 pl-10 pr-3 text-body-lg font-body-lg text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-outline/70" id="password" placeholder="Enter your password" type="password" />
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-2xl">lock</span>
+                <input className={`w-full bg-white border-2 rounded-xl py-4 pl-14 pr-4 text-lg text-gray-900 focus:outline-none focus:ring-2 ${systemStatus === "CRASHED" ? "border-red-500 focus:border-red-500 focus:ring-red-100" : "border-gray-200 focus:border-amber-400 focus:ring-amber-100"}`} id="password" placeholder="Enter your password" type="password" />
               </div>
             </div>
-            <div className="flex items-center justify-between mt-xs px-1">
-              <div className="flex items-center gap-2">
-                <input className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 bg-surface-container-lowest" id="remember" type="checkbox" />
-                <label className="text-body-sm font-body-sm text-on-surface-variant cursor-pointer" htmlFor="remember">Remember me</label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <input className="rounded border-gray-300 text-amber-500 focus:ring-amber-500 h-5 w-5" id="remember" type="checkbox" />
+                <label className="text-base text-gray-600 cursor-pointer" htmlFor="remember">Remember me</label>
               </div>
-              <a className="text-body-sm font-body-sm text-primary hover:text-primary-fixed-variant transition-colors font-medium" href="#">Forgot Credentials?</a>
+              <a className="text-base font-semibold text-amber-600 hover:text-amber-700 transition-colors" href="#">Forgot Password?</a>
             </div>
-            <button
-              onClick={handleLogin}
-              className="mt-4 w-full bg-tertiary-fixed text-on-tertiary-fixed text-subheading font-subheading py-3 rounded-lg hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200 shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-              type="button"
-            >
-              Login to Dashboard
-              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+            <button onClick={handleLogin} disabled={systemStatus === "CRASHED"} className={`w-full font-bold text-xl py-5 rounded-xl flex items-center justify-center gap-3 shadow-xl cursor-pointer ${systemStatus === "CRASHED" ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-gradient-to-r from-amber-400 to-yellow-300 text-gray-900 hover:opacity-90"}`} type="button">
+              {systemStatus === "CRASHED" ? "SYSTEM DOWN" : "Login to Dashboard"}
+              <span className="material-symbols-outlined text-2xl">arrow_forward</span>
             </button>
           </form>
-          <div className="text-center mt-2 border-t border-outline-variant/30 pt-sm">
-            <Link className="text-body-sm font-body-sm text-on-surface-variant hover:text-primary transition-colors" to="/register">
-              New user? <span className="font-medium text-primary">Register here</span>
-            </Link>
+          <div className="text-center border-t border-gray-200 pt-6">
+            <Link className="text-base text-gray-500 hover:text-amber-600 transition-colors" to="/register">New user? <span className="font-semibold text-amber-600">Register here</span></Link>
           </div>
         </div>
       </main>

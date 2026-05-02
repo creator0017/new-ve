@@ -5,59 +5,44 @@ import sqlite3
 app = Flask(__name__)
 CORS(app)
 
-system_status = {
-    "status": "READY",
-    "latest_crash_input": "",
-    "broken_code": "",
-    "fixed_code": ""
-}
+system_state = {"status": "READY", "current_payload": "", "logs": [], "patch": ""}
 
 def init_db():
     conn = sqlite3.connect('bank.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (acc TEXT, balance REAL)''')
-    c.execute("INSERT OR IGNORE INTO users VALUES ('admin', 9999)")
+    conn.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, acc TEXT, bal REAL)')
+    conn.execute("INSERT OR IGNORE INTO users (id, acc, bal) VALUES (1, 'admin_account', 1000000)")
     conn.commit()
     conn.close()
 
-@app.route('/api/transfer', methods=['POST'])
-def transfer():
-    global system_status
-    data = request.json
-    account = data.get('account', '')
-
-    query = "SELECT * FROM users WHERE acc='" + account + "'"
-
-    try:
-        conn = sqlite3.connect('bank.db')
-        c = conn.cursor()
-        c.execute(query)
-        result = c.fetchall()
-        conn.close()
-        return jsonify({"success": True, "data": result})
-    except Exception as e:
-        system_status["status"] = "CRASHED"
-        system_status["latest_crash_input"] = account
-        system_status["broken_code"] = 'query = "SELECT * FROM users WHERE acc=\'" + account + "\'"\nc.execute(query)'
-        return jsonify({"error": "Internal Server Error"}), 500
-
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    return jsonify(system_status)
+    return jsonify(system_state)
+
+@app.route('/api/update-payload', methods=['POST'])
+def update_payload():
+    system_state["current_payload"] = request.json.get('payload', '')
+    return jsonify({"success": True})
+
+@app.route('/api/transfer', methods=['POST'])
+def transfer():
+    acc_name = request.json.get('account', '')
+    if "'" in acc_name or "--" in acc_name:
+        system_state["status"] = "CRASHED"
+        system_state["logs"].append("SQL INJECTION DETECTED: " + acc_name)
+        return jsonify({"error": "CRITICAL SYSTEM FAILURE: SQL INJECTION"}), 500
+    return jsonify({"success": True, "message": "Transfer to " + acc_name + " successful!"}), 200
 
 @app.route('/api/fuzz-start', methods=['POST'])
 def start_fuzz():
-    global system_status
-    system_status["status"] = "ATTACKING"
-    return jsonify({"message": "Fuzzer started"})
+    system_state["status"] = "ATTACKING"
+    return jsonify({"message": "Attack Agent Started"})
 
-@app.route('/api/patch', methods=['POST'])
-def patch_system():
-    global system_status
-    system_status["status"] = "FIXED"
-    system_status["fixed_code"] = 'c.execute("SELECT * FROM users WHERE acc=?", (account,))'
-    return jsonify({"message": "System Patched"})
+@app.route('/api/deploy-patch', methods=['POST'])
+def deploy():
+    system_state["status"] = "FIXED"
+    system_state["patch"] = "c.execute('SELECT * FROM users WHERE acc = ?', (acc_name,))"
+    return jsonify({"success": True})
 
 if __name__ == '__main__':
     init_db()
-    app.run(port=5000, debug=True)
+    app.run(port=5000)

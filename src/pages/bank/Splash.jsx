@@ -12,25 +12,21 @@ function Splash() {
   }, [navigate])
 
   return (
-    <div className="bg-background text-on-background font-sans antialiased min-h-screen w-full flex flex-col items-center justify-center relative overflow-hidden">
-      <div className="absolute right-[-10%] top-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full ambient-glow blur-[80px] pointer-events-none z-0"></div>
-      <div className="z-10 flex flex-col items-center justify-center space-y-md animate-float-subtle">
-        <div className="flex items-center justify-center">
-          <span className="material-symbols-outlined" style={{ fontSize: '80px', fontVariationSettings: "'FILL' 0", color: 'var(--on-surface)' }}>
+    <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen w-full flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center gap-8">
+        <div className="relative">
+          <div className="absolute inset-0 bg-amber-400 blur-3xl opacity-30 rounded-full animate-pulse"></div>
+          <span className="material-symbols-outlined relative text-8xl text-amber-400" style={{ fontVariationSettings: "'FILL' 1" }}>
             hexagon
           </span>
         </div>
-        <h1 className="font-display-xl text-display-xl tracking-tighter uppercase font-black text-on-surface">
-          SecureBank
-        </h1>
-      </div>
-      <div className="absolute bottom-xl w-64 max-w-[80%] flex flex-col items-center space-y-sm z-10">
-        <span className="font-label-caps text-label-caps text-on-surface-variant uppercase animate-pulse-subtle">
-          Initializing Secure Environment
-        </span>
-        <div className="w-full h-1 bg-surface-variant rounded-full overflow-hidden flex">
-          <div className="w-[45%] h-full rounded-full shadow-[0_0_10px_rgba(231,195,101,0.5)] animate-shimmer"></div>
+<h1 className="text-4xl md:text-5xl lg:text-7xl font-black tracking-tighter text-white uppercase">
+           SecureBank
+         </h1>
+        <div className="mt-8 w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 rounded-full animate-pulse" style={{ width: '60%' }}></div>
         </div>
+        <p className="text-lg text-gray-400 uppercase tracking-widest mt-4">Initializing Secure Environment</p>
       </div>
     </div>
   )
