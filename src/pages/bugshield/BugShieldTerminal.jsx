@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-const API = 'http://localhost:5000/api'
+const API = 'http://127.0.0.1:5000/api'
 
 function BugShieldTerminal() {
   const [backendData, setBackendData] = useState({ status: 'READY', logs: [], patch: '' })
@@ -42,7 +42,7 @@ function BugShieldTerminal() {
       for (const p of payloads) {
         setDisplayLogs(prev => [...prev, { id: prev.length + 1, payload: `'${p}'`, status: '...', ok: true }])
         try {
-          const res = await fetch(`${API}/transfer`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ account: p }) })
+          const res = await fetch(`${API}/login-attempt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: p, password: p }) })
           if (res.status === 500) { setDisplayLogs(prev => [...prev, { id: prev.length + 1, payload: `'${p}'`, status: '500 CRASH', ok: false }]); break }
           else { setDisplayLogs(prev => [...prev.slice(0, -1), { ...prev[prev.length - 1], status: '200', ok: true }]) }
         } catch (e) {}
@@ -102,11 +102,11 @@ function BugShieldTerminal() {
                  <span className="material-symbols-outlined text-sm md:text-base">wifi_tethering</span>
                </header>
                <div className="p-3 md:p-4 flex flex-col gap-3 md:gap-4">
-                 <div className="border border-green-500/30 p-2 md:p-3 bg-[#050505]">
-                   <span className="text-green-400/60 mr-2 text-xs md:text-sm">TARGET:</span>
-                   <span className="terminal-glow text-xs md:text-sm break-all">http://localhost:5000/api/transfer</span>
-                   <span className="font-bold blinking text-sm md:text-base">&#9608;</span>
-                 </div>
+                  <div className="border border-green-500/30 p-2 md:p-3 bg-[#050505]">
+                    <span className="text-green-400/60 mr-2 text-xs md:text-sm">TARGET:</span>
+                    <span className="terminal-glow text-xs md:text-sm break-all">http://127.0.0.1:5000/api/status</span>
+                    <span className="font-bold blinking text-sm md:text-base">&#9608;</span>
+                  </div>
                  <button onClick={handleAttack} disabled={isAttacking} className="w-full py-3 md:py-4 border-2 border-green-400 text-green-400 font-bold hover:bg-green-400 hover:text-black transition-colors uppercase tracking-widest cursor-pointer disabled:opacity-50 text-sm md:text-base">
                    {isAttacking ? '[ ATTACKING... ]' : '[ INITIATE ATTACK ]'}
                  </button>
@@ -183,10 +183,10 @@ function BugShieldTerminal() {
                        STATUS: <span style={{ color: statusColor }}>{backendData.status}</span>
                      </div>
                      <div className="flex gap-6 md:gap-12 border-y border-green-400/30 py-2 md:py-3 w-full justify-center">
-                       <div className="text-center">
-                         <div className="text-xs md:text-sm text-green-400/60 mb-1">TARGET</div>
-                         <div className="text-green-400 font-bold text-sm md:text-lg">localhost:5000</div>
-                       </div>
+                        <div className="text-center">
+                          <div className="text-xs md:text-sm text-green-400/60 mb-1">TARGET</div>
+                          <div className="text-green-400 font-bold text-sm md:text-lg">127.0.0.1:5000</div>
+                        </div>
                        <div className="text-center">
                          <div className="text-xs md:text-sm text-yellow-400/60 mb-1">TESTS RUN</div>
                          <div className="text-yellow-400 font-bold text-base md:text-xl">{displayLogs.length}</div>

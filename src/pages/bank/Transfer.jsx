@@ -87,7 +87,7 @@ function Transfer() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-semibold text-gray-600 uppercase" htmlFor="amount">Amount ()</label>
+                    <label className="text-sm font-semibold text-gray-600 uppercase" htmlFor="amount">Amount (₹)</label>
                     <span className="bg-red-100 text-red-700 text-sm font-semibold px-3 py-1 rounded-lg">NEGATIVE_VALUE</span>
                   </div>
                   <div className="relative">

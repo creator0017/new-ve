@@ -1,29 +1,36 @@
 import requests
 import time
 
-ATTACK_KEYWORDS = [
-    "admin", "password", "root", "123456", "guest", 
-    "admin'--", "select * from users", "drop table users",
-    "<script>alert(1)</script>", "admin' #", "' OR '1'='1'",
-    "../../etc/passwd", "sleep(5)", "benchmark(1000000)",
-    "union select null,null--", "@@version", "' OR 1=1 --"
-]
+# 34 Fast attempts + 1 Final Kill Shot
+ATTACK_SAMPLES = [(f"user_{i}", f"pass_{i*99}") for i in range(1, 35)]
+ATTACK_SAMPLES.append(("admin'--", "' OR 1=1 --"))
 
-def start_intense_attack():
-    print("BugShield Shannon Agent: Starting Deep Fuzzing...")
-    requests.post("http://127.0.0.1:5000/api/fuzz-start")
+def run_brutal_attack():
+    URL = "http://127.0.0.1:5000"
+    print("INITIATING AUTONOMOUS BREACH SIMULATION...")
     
-    for word in ATTACK_KEYWORDS:
-        print(f"Testing payload: {word}")
-        requests.post("http://127.0.0.1:5000/api/update-payload", json={"payload": word})
-        time.sleep(0.4)
+    try:
+        requests.post(f"{URL}/api/reset")
+        requests.post(f"{URL}/api/fuzz-start")
         
-        response = requests.post("http://127.0.0.1:5000/api/transfer", json={"account": word})
-        
-        if response.status_code == 500:
-            print("\nCRITICAL VULNERABILITY FOUND!")
-            print(f"Final Payload: {word}")
-            break
+        for user, pw in ATTACK_SAMPLES:
+            # 1. Update UI (Ghost Typing)
+            requests.post(f"{URL}/api/update-payload", json={"user": user, "password": pw, "clicking": False})
+            time.sleep(0.1) 
+            
+            # 2. Update UI (Visually Click Button)
+            requests.post(f"{URL}/api/update-payload", json={"user": user, "password": pw, "clicking": True})
+            
+            # 3. Send Login Request
+            res = requests.post(f"{URL}/api/login-attempt", json={"username": user, "password": pw})
+            
+            if res.status_code == 500:
+                print("BOOM. DATABASE CRACKED.")
+                break
+                
+            time.sleep(0.1) 
+    except Exception as e:
+        print(f"ERROR: Is app.py running? {e}")
 
 if __name__ == "__main__":
-    start_intense_attack()
+    run_brutal_attack()
