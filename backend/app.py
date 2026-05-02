@@ -28,9 +28,9 @@ def transfer():
     acc_name = request.json.get('account', '')
     if "'" in acc_name or "--" in acc_name:
         system_state["status"] = "CRASHED"
-        system_state["logs"].append("SQL INJECTION DETECTED: " + acc_name)
+        system_state["logs"].append(f"SQL INJECTION DETECTED: {acc_name}")
         return jsonify({"error": "CRITICAL SYSTEM FAILURE: SQL INJECTION"}), 500
-    return jsonify({"success": True, "message": "Transfer to " + acc_name + " successful!"}), 200
+    return jsonify({"success": True, "message": f"Transfer to {acc_name} successful!"}), 200
 
 @app.route('/api/fuzz-start', methods=['POST'])
 def start_fuzz():
@@ -45,4 +45,4 @@ def deploy():
 
 if __name__ == '__main__':
     init_db()
-    app.run(port=5000)
+    app.run(port=5000, host='127.0.0.1')

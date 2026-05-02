@@ -11,18 +11,18 @@ ATTACK_KEYWORDS = [
 
 def start_intense_attack():
     print("BugShield Shannon Agent: Starting Deep Fuzzing...")
-    requests.post("http://localhost:5000/api/fuzz-start")
+    requests.post("http://127.0.0.1:5000/api/fuzz-start")
     
     for word in ATTACK_KEYWORDS:
-        print("Testing payload: " + word)
-        requests.post("http://localhost:5000/api/update-payload", json={"payload": word})
+        print(f"Testing payload: {word}")
+        requests.post("http://127.0.0.1:5000/api/update-payload", json={"payload": word})
         time.sleep(0.4)
         
-        response = requests.post("http://localhost:5000/api/transfer", json={"account": word})
+        response = requests.post("http://127.0.0.1:5000/api/transfer", json={"account": word})
         
         if response.status_code == 500:
             print("\nCRITICAL VULNERABILITY FOUND!")
-            print("Final Payload: " + word)
+            print(f"Final Payload: {word}")
             break
 
 if __name__ == "__main__":
